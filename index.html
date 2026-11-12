@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semester Planning Studio</title>
+<meta name="description" content="Interactive PAT tutorial: planning and prioritising your studies (Year 2, Semester 1, Week 7).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+/* =====================================================================
+   ✏️  EDIT ME — SESSION SETTINGS
+   Everything you are likely to want to change lives in this block.
+   You do not need to touch anything below it.
+   ===================================================================== */
+const CONFIG = {
+  sessionTitle: "Semester Planning Studio",
+  subtitle: "PAT group tutorial · Planning & prioritising your studies · Year 2 BSc Business and Management",
+
+  // Monday of teaching week 1 (YYYY-MM-DD). Used to label weeks on the timeline.
+  week1Monday: "2026-09-28",
+  // Last date the deadline timeline shows (covers the January assessment period).
+  timelineEnd: "2027-01-29",
+
+  // Minutes per station (total should be 60).
+  stations: [
+    { id: "s1", name: "Check-in (Vevox)",  minutes: 5  },
+    { id: "s2", name: "Deadline Mapper",   minutes: 10 },
+    { id: "s3", name: "Priority Matrix",   minutes: 15 },
+    { id: "s4", name: "Backwards Planner", minutes: 10 },
+    { id: "s5", name: "Scenarios",         minutes: 10 },
+    { id: "s6", name: "My Next 7 Days",    minutes: 10 }
+  ],
+
+  // Example deadlines students can load with one click (clearly labelled as examples).
+  exampleDeadlines: [
+    { module: "Strategic Management",       title: "Case study report (2,500 words)", due: "2026-12-04", weight: 50, hours: 25 },
+    { module: "Marketing Analytics",        title: "Group presentation",              due: "2026-12-08", weight: 30, hours: 15 },
+    { module: "Organisational Behaviour",   title: "Reflective essay (2,000 words)",  due: "2026-12-11", weight: 40, hours: 20 },
+    { module: "Business Research Methods",  title: "Research proposal",               due: "2027-01-15", weight: 60, hours: 30 }
+  ],
+
+  // Station 1: Vevox check-in (built separately in Vevox).
+  vevox: {
+    joinUrl: "https://vevox.app/131633031",
+    sessionId: "131-633-031",
+    // Leave qrImage empty to use the QR code embedded in this file,
+    // or put the name of an image file uploaded next to index.html, e.g. "vevox-qr.png".
+    qrImage: ""
+  },
+
+  // Station 4 default stages: share of available time (should add to 100).
+  stages: [
+    { name: "Unpack the brief & marking criteria", share: 10 },
+    { name: "Research & reading",                  share: 30 },
+    { name: "Outline / plan the argument",         share: 10 },
+    { name: "Write the first draft",               share: 30 },
+    { name: "Edit, reference & proofread",         share: 15 },
+    { name: "Final checks & submit",               share: 5  }
+  ],
+
+  // Station 5 scenarios.
+  scenarios: [
+    { title: "The Friday pile-up",
+      text: "It's Tuesday. You have a group meeting Wednesday, a part-time shift Thursday evening, and a 2,500-word report (50%) due Friday at noon. You've written 800 words.",
+      options: [
+        { t: "Skip the group meeting to write", fb: "Understandable, but the group relies on you and that deadline may be next week's crunch. Better: attend, keep it focused, and leave with clear actions.", good: false },
+        { t: "Ask to swap or shorten the shift, and block Wed–Thu daytime for writing", fb: "Strong choice. You're protecting time for the highest-weighted, most urgent task while keeping commitments. Talk to your manager early.", good: true },
+        { t: "Pull an all-nighter on Thursday after the shift", fb: "Risky. Tiredness reduces the quality of editing and critical analysis — exactly where marks are won. Spread the work out instead.", good: false }
+      ] },
+    { title: "The silent group member",
+      text: "Your group presentation is in 9 days. One member hasn't replied to messages for a week and their section is the data analysis.",
+      options: [
+        { t: "Quietly do their section yourself", fb: "It feels faster but it isn't sustainable, and it hides the problem. Raise it first.", good: false },
+        { t: "Message them directly with a clear deadline, and flag it to the module lead if there's no reply in 48 hours", fb: "Good. It's fair, documented and early enough for staff to help. Keep a record of contributions.", good: true },
+        { t: "Wait and hope they turn up", fb: "Waiting shrinks your options. With 9 days left, act now.", good: false }
+      ] },
+    { title: "The bad week",
+      text: "You've been unwell for most of this week and have fallen badly behind. A 40% essay is due in 6 days.",
+      options: [
+        { t: "Push through and say nothing", fb: "You don't have to struggle alone. You may be eligible for an extension — check the guidance and talk to your PAT.", good: false },
+        { t: "Read the extensions / extenuating circumstances guidance and contact your PAT today", fb: "Exactly right. Extensions and ECs exist for situations like this, and applying early matters. Your PAT can help you work out next steps.", good: true },
+        { t: "Submit whatever you have and move on", fb: "Sometimes that's the right call, but get advice first — there may be support you're entitled to.", good: false }
+      ] },
+    { title: "The shiny distraction",
+      text: "You have a free afternoon and three tasks: re-format references for a report due in 2 weeks (20%), start reading for an essay due in 4 weeks (50%), or reply to society emails.",
+      options: [
+        { t: "Reply to society emails first — get them out of the way", fb: "Quick wins feel good but they rarely move your marks. Batch admin into a 20-minute slot later.", good: false },
+        { t: "Fix the references — it's due soonest", fb: "Reasonable, but it's low-weighted and quick. It can wait for a short slot.", good: false },
+        { t: "Start the reading for the 50% essay", fb: "Good thinking. Important-but-not-yet-urgent work is where planning pays off. Starting early prevents a future crunch.", good: true }
+      ] }
+  ],
+
+  // Support links shown at the end and in the printed plan.
+  supportLinks: [
+    { name: "Academic Skills Centre", desc: "1-to-1 appointments and workshops on writing, time management, and study skills.", url: "https://www.birmingham.ac.uk/study/support/asc" },
+    { name: "Extensions & Extenuating Circumstances guidance", desc: "What to do if something affects your ability to meet a deadline.", url: "https://intranet.birmingham.ac.uk/student/documents/public/student-guidances-ecs-and-extensions.pdf" },
+    { name: "Mental Health & Wellbeing Service", desc: "Confidential support for your wellbeing.", url: "https://intranet.birmingham.ac.uk/student/your-wellbeing/mental-health/about.aspx" },
+    { name: "Your PAT", desc: "Book a 1-to-1 if you want to talk through your plan or anything affecting your studies.", url: "" }
+  ],
+
+  // Facilitator notes (only visible in Presenter mode).
+  notes: {
+    s1: "Launch the Vevox check-in. Share your screen with this station so everyone can scan the QR code, then show the Vevox results and pick out one or two themes before moving on.",
+    s2: "Encourage them to use their real Canvas deadlines. Anyone without them can load the examples. Ask: which week is your crunch week?",
+    s3: "Link to Eisenhower matrix from management modules. Point out that the score is a guide, not a rule. Ask: what's in your 'Important, not urgent' box?",
+    s4: "Get them to pick the assignment with the highest priority score. Ask: what is the very first stage date, and is it this week?",
+    s5: "Read each scenario aloud. Ask students to vote A/B/C in chat before revealing feedback. Discuss the extensions scenario carefully.",
+    s6: "Leave 2 minutes at the end for 'one commitment' in the chat. Remind them to save as PDF — nothing is stored online."
+  }
+};
+/* ===================== END OF EDITABLE SETTINGS ===================== */
+</script>
+<style>
+:root{
+  --bg:#f6f3ec; --surface:#fffdf8; --surface-2:#efeadf; --ink:#1d2433; --ink-2:#4a5263; --muted:#7a8091;
+  --line:#ddd6c7; --accent:#c4621d; --accent-soft:#f4e1d1; --accent-ink:#8a3f0d;
+  --ok:#2f7a4f; --ok-soft:#dcefe3; --warn:#b3261e; --warn-soft:#f7dcd9;
+  --q1:#f7dcd9; --q2:#dcefe3; --q3:#f6ecd0; --q4:#e4e6ec;
+  --radius:14px; --shadow:0 1px 2px rgba(29,36,51,.06),0 4px 16px rgba(29,36,51,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14171e; --surface:#1c2029; --surface-2:#252a35; --ink:#ece8df; --ink-2:#b9bccb; --muted:#8d92a3;
+    --line:#333949; --accent:#e9874a; --accent-soft:#3a2a1f; --accent-ink:#f2b083;
+    --ok:#6cc391; --ok-soft:#1f3328; --warn:#f08a80; --warn-soft:#3b2220;
+    --q1:#3b2422; --q2:#1f3328; --q3:#3a3220; --q4:#2a2e3a; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14171e; --surface:#1c2029; --surface-2:#252a35; --ink:#ece8df; --ink-2:#b9bccb; --muted:#8d92a3;
+  --line:#333949; --accent:#e9874a; --accent-soft:#3a2a1f; --accent-ink:#f2b083;
+  --ok:#6cc391; --ok-soft:#1f3328; --warn:#f08a80; --warn-soft:#3b2220;
+  --q1:#3b2422; --q2:#1f3328; --q3:#3a3220; --q4:#2a2e3a; --shadow:none;
+}
+*{box-sizing:border-box}
+html{font-size:16px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.55}
+body.presenter{font-size:1.18rem}
+h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:700;line-height:1.15;margin:0}
+a{color:var(--accent-ink)}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+
+/* Header */
+header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-row{display:flex;align-items:center;gap:12px;padding:12px 0;flex-wrap:wrap}
+.brand h1{font-size:1.25rem}
+.brand p{margin:0;color:var(--muted);font-size:.8rem}
+.spacer{flex:1}
+.timer{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 14px}
+.timer .clock{font-variant-numeric:tabular-nums;font-weight:600;min-width:3.4em;font-size:1.05rem}
+.timer.done{border-color:var(--warn);background:var(--warn-soft);animation:pulse 1s ease-in-out 4}
+@keyframes pulse{50%{transform:scale(1.04)}}
+.icon-btn{border:0;background:var(--surface-2);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:.85rem;font-weight:500}
+.icon-btn:hover{background:var(--accent-soft)}
+.icon-btn[aria-pressed="true"]{background:var(--accent);color:#fff}
+nav.stations{display:flex;gap:6px;overflow-x:auto;padding-bottom:12px;scrollbar-width:thin}
+nav.stations button{flex:1 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;cursor:pointer;text-align:left;min-width:120px;position:relative;overflow:hidden}
+nav.stations button .n{font-size:.72rem;color:var(--muted);display:block}
+nav.stations button .t{font-weight:600;font-size:.9rem}
+nav.stations button.active{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+nav.stations button.visited .n::after{content:" ✓";color:var(--ok)}
+
+/* Stations */
+main{padding:24px 0 64px}
+section.station{display:none;animation:fade .25s ease}
+section.station.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}}
+.station-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.station-head h2{font-size:1.9rem}
+.pill{display:inline-block;background:var(--accent-soft);color:var(--accent-ink);border-radius:999px;padding:2px 10px;font-size:.78rem;font-weight:600}
+.lede{color:var(--ink-2);max-width:68ch;margin:6px 0 20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+.card h3{font-size:1.15rem;margin-bottom:10px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.grid-2{grid-template-columns:1fr}}
+.notes{display:none;border-left:4px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:.92rem}
+body.presenter .notes{display:block}
+.notes b{color:var(--accent-ink)}
+.chat-prompt{display:flex;gap:10px;align-items:flex-start;background:var(--surface-2);border-radius:10px;padding:10px 14px;font-size:.92rem;margin-top:12px}
+.chat-prompt::before{content:"💬";font-size:1.1rem}
+.btn{border:0;background:var(--accent);color:#fff;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.small{padding:6px 10px;font-size:.85rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.next-row{display:flex;justify-content:space-between;margin-top:24px;gap:10px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:500;color:var(--ink-2)}
+input[type=text],input[type=date],input[type=number],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+textarea{resize:vertical;min-height:80px}
+.muted{color:var(--muted)}
+.empty{color:var(--muted);font-style:italic;padding:12px 0}
+
+/* S1 */
+.vevox{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.vevox img{width:240px;height:240px;image-rendering:pixelated;background:#fff;padding:12px;border-radius:12px;border:1px solid var(--line);flex:0 0 auto}
+body.presenter .vevox img{width:320px;height:320px}
+.vevox > div{flex:1;min-width:240px}
+.vx-steps{padding-left:20px;margin:8px 0 14px}
+.vx-steps li{margin-bottom:6px}
+.vx-id{font-variant-numeric:tabular-nums;letter-spacing:.04em;font-size:1.1em}
+@media (max-width:560px){.vevox img{width:200px;height:200px;margin:0 auto}}
+
+/* S2 */
+.dl-form{display:grid;grid-template-columns:1.3fr 1.6fr 1fr .7fr .7fr auto;gap:8px;align-items:end}
+@media (max-width:860px){.dl-form{grid-template-columns:1fr 1fr}.dl-form .btn{grid-column:span 2}}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+.table-scroll{overflow-x:auto}
+.days{font-variant-numeric:tabular-nums;font-weight:600}
+.days.soon{color:var(--warn)}
+.x{border:0;background:none;cursor:pointer;color:var(--muted);font-size:1.1rem;padding:2px 6px;border-radius:6px}
+.x:hover{background:var(--warn-soft);color:var(--warn)}
+.timeline{display:grid;gap:4px;overflow-x:auto;padding-bottom:6px}
+.tl-week{background:var(--surface-2);border-radius:8px;padding:6px;min-height:110px;min-width:78px;display:flex;flex-direction:column;gap:4px;border:2px solid transparent}
+.tl-week.crunch{border-color:var(--warn);background:var(--warn-soft)}
+.tl-week.now{box-shadow:inset 0 3px 0 var(--accent)}
+.tl-week .wk{font-size:.7rem;font-weight:600;color:var(--muted)}
+.tl-week .wk b{color:var(--ink);font-size:.8rem}
+.chip{overflow-wrap:anywhere;hyphens:auto;font-size:.7rem;background:var(--surface);border-left:3px solid var(--accent);border-radius:4px;padding:3px 5px;line-height:1.25}
+.crunch-flag{font-size:.65rem;color:var(--warn);font-weight:700;text-transform:uppercase;margin-top:auto}
+.legend{display:flex;gap:16px;font-size:.8rem;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;background:var(--warn-soft);border:2px solid var(--warn)}
+.legend span.n::before{background:var(--surface-2);border:0;box-shadow:inset 0 3px 0 var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--surface-2);border-radius:10px;padding:12px}
+.stat .v{font-family:"Fraunces",serif;font-size:1.8rem;font-weight:700;line-height:1}
+.stat .l{font-size:.78rem;color:var(--muted);margin-top:4px}
+@media (max-width:560px){.stats{grid-template-columns:1fr}}
+
+/* S3 */
+.pool{display:flex;flex-wrap:wrap;gap:8px;min-height:56px;padding:10px;border:2px dashed var(--line);border-radius:10px}
+.matrix{display:grid;grid-template-columns:32px 1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:8px;margin-top:12px}
+.axis{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;justify-content:center}
+.axis.v{writing-mode:vertical-rl;transform:rotate(180deg)}
+.quad{border-radius:12px;padding:10px;min-height:150px;display:flex;flex-direction:column;gap:6px;border:2px solid transparent;transition:border-color .15s}
+.quad.over{border-color:var(--accent)}
+.quad h4{margin:0;font-size:.85rem;font-family:"IBM Plex Sans",sans-serif}
+.quad small{color:var(--ink-2);font-size:.74rem;margin-top:-4px}
+.q-do{background:var(--q1)} .q-plan{background:var(--q2)} .q-delegate{background:var(--q3)} .q-drop{background:var(--q4)}
+.task{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:.82rem;cursor:grab;display:flex;gap:6px;align-items:center;box-shadow:var(--shadow)}
+.task:active{cursor:grabbing}
+.task .score{margin-left:auto;font-weight:700;background:var(--accent-soft);color:var(--accent-ink);border-radius:6px;padding:0 6px;font-variant-numeric:tabular-nums}
+.task select{width:auto;padding:2px 4px;font-size:.75rem;border-radius:6px}
+.task.dragging{opacity:.4}
+.rank li{margin-bottom:6px}
+.rank .bar{height:6px;border-radius:3px;background:var(--accent);margin-top:3px}
+@media (max-width:560px){.matrix{grid-template-columns:1fr 1fr;grid-template-rows:auto}.axis{display:none}}
+
+/* S4 */
+.stage-list{display:grid;gap:8px}
+.stage{display:grid;grid-template-columns:28px 1fr 90px 120px 30px;gap:8px;align-items:center;background:var(--surface-2);border-radius:10px;padding:8px 10px}
+.stage .num{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem}
+.stage input[type=text]{background:var(--surface)}
+.stage .date{font-weight:600;font-size:.88rem;font-variant-numeric:tabular-nums}
+.stage.past .date{color:var(--warn)}
+.stage .share{display:flex;align-items:center;gap:4px;font-size:.8rem}
+.stage .share input{padding:6px;background:var(--surface)}
+@media (max-width:640px){.stage{grid-template-columns:28px 1fr 30px}.stage .share,.stage .date{grid-column:2}}
+.gantt{display:flex;height:22px;border-radius:6px;overflow:hidden;margin:14px 0 4px}
+.gantt div{height:100%}
+.warn-box{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:.88rem;margin-top:10px}
+
+/* S5 */
+.scen-nav{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.scen-nav button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:.85rem}
+.scen-nav button.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.scenario p.s{font-size:1.08rem;max-width:65ch}
+.choice{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:12px;cursor:pointer;margin-bottom:8px}
+.choice .letter{flex:0 0 28px;height:28px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:700}
+.choice:hover{border-color:var(--accent)}
+.choice.good{border-color:var(--ok);background:var(--ok-soft)}
+.choice.bad{border-color:var(--warn);background:var(--warn-soft)}
+.fb{font-size:.9rem;margin-top:6px;color:var(--ink-2)}
+
+/* S6 */
+.week{display:grid;grid-template-columns:70px repeat(7,1fr);gap:4px;overflow-x:auto;min-width:640px}
+.week-wrap{overflow-x:auto}
+.week .h{font-size:.74rem;font-weight:600;color:var(--muted);text-align:center;padding:4px 0}
+.week .h b{display:block;color:var(--ink);font-size:.82rem}
+.week .slot-l{font-size:.75rem;font-weight:600;color:var(--muted);display:flex;align-items:center}
+.cell{min-height:58px;border-radius:8px;border:1px solid var(--line);background:var(--bg);padding:4px;display:flex;flex-direction:column;gap:2px;cursor:pointer}
+.cell .tag{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.cell input{border:0;background:transparent;padding:0;font-size:.74rem;width:100%}
+.cell.study{background:var(--accent-soft);border-color:var(--accent)} .cell.study .tag{color:var(--accent-ink)}
+.cell.class{background:var(--q4)} .cell.work{background:var(--q3)} .cell.rest{background:var(--q2)} .cell.rest .tag{color:var(--ok)}
+.key{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px;font-size:.8rem}
+.key span{padding:2px 8px;border-radius:6px;border:1px solid var(--line)}
+.links{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.link-card{display:block;background:var(--surface-2);border-radius:10px;padding:12px;text-decoration:none;color:var(--ink);border:1px solid transparent}
+a.link-card:hover{border-color:var(--accent)}
+.link-card b{display:block;margin-bottom:2px}
+.link-card span{font-size:.84rem;color:var(--ink-2)}
+
+footer{color:var(--muted);font-size:.8rem;text-align:center;padding:24px 16px 40px}
+
+/* Print — the plan */
+#printPlan{display:none}
+@media print{
+  @page{margin:16mm}
+  body{background:#fff;color:#000;font-size:11pt}
+  header.top,main,footer{display:none!important}
+  #printPlan{display:block}
+  #printPlan h1{font-size:20pt;margin-bottom:4pt}
+  #printPlan h2{font-size:13pt;margin:16pt 0 6pt;border-bottom:1px solid #999;padding-bottom:3pt}
+  #printPlan table{font-size:9.5pt}
+  #printPlan th,#printPlan td{border:1px solid #bbb;padding:4pt}
+  #printPlan .pbox{border:1px solid #999;padding:8pt;border-radius:4pt}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <div class="brand">
+        <h1 id="appTitle">Semester Planning Studio</h1>
+        <p id="appSub"></p>
+      </div>
+      <div class="spacer"></div>
+      <div class="timer" id="timer" title="Station timer">
+        <span class="clock" id="clock">05:00</span>
+        <button class="icon-btn" id="tStart" aria-label="Start timer">▶</button>
+        <button class="icon-btn" id="tReset" aria-label="Reset timer">↺</button>
+      </div>
+      <button class="icon-btn" id="presenterBtn" aria-pressed="false" title="Larger text and facilitator notes">Presenter</button>
+      <button class="icon-btn" id="themeBtn" title="Toggle light/dark">◐</button>
+    </div>
+    <nav class="stations" id="nav" aria-label="Stations"></nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ STATION 1 ============ -->
+  <section class="station" id="s1">
+    <div class="station-head"><h2>Check-in</h2><span class="pill">5 min</span></div>
+    <p class="lede">We're in week 7 — the point where coursework deadlines start to bunch up. Let's start with a quick check-in on how you're feeling about your studies.</p>
+    <div class="notes" data-note="s1"></div>
+    <div class="card vevox">
+      <img id="vxQr" alt="QR code to join the Vevox check-in">
+      <div>
+        <h3>Join the check-in on Vevox</h3>
+        <ol class="vx-steps">
+          <li>Scan the QR code with your phone camera, <b>or</b></li>
+          <li>Go to <a id="vxLink" target="_blank" rel="noopener"></a></li>
+          <li>Or open vevox.app and enter session ID <b class="vx-id" id="vxId"></b></li>
+        </ol>
+        <p class="muted" style="margin:0">Answer the questions, then come back to this page for the next station.</p>
+      </div>
+    </div>
+    <div class="next-row"><span></span><button class="btn" data-go="1">Next: Deadline Mapper →</button></div>
+  </section>
+
+  <!-- ============ STATION 2 ============ -->
+  <section class="station" id="s2">
+    <div class="station-head"><h2>Deadline Mapper</h2><span class="pill">10 min</span></div>
+    <p class="lede">Add every assessment you have left this semester — check Canvas for dates and weightings. The timeline shows where your deadlines cluster.</p>
+    <div class="notes" data-note="s2"></div>
+    <div class="card">
+      <form class="dl-form" id="dlForm" autocomplete="off">
+        <label class="f">Module<input type="text" id="fModule" required placeholder="e.g. Strategic Management"></label>
+        <label class="f">Assessment<input type="text" id="fTitle" required placeholder="e.g. Case study report"></label>
+        <label class="f">Due date<input type="date" id="fDue" required></label>
+        <label class="f">Weight %<input type="number" id="fWeight" min="0" max="100" value="50" required></label>
+        <label class="f">Est. hours<input type="number" id="fHours" min="0" max="200" value="20"></label>
+        <button class="btn" type="submit">Add</button>
+      </form>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost small" id="loadExamples" type="button">Load example deadlines</button>
+        <span class="muted" style="font-size:.82rem">Examples are fictional — replace them with your own.</span>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="card">
+      <h3>Your deadlines</h3>
+      <div class="table-scroll" id="dlTable"></div>
+    </div>
+    <div class="card">
+      <h3>Timeline</h3>
+      <div class="timeline" id="timeline"></div>
+      <div class="legend"><span>Crunch week (2+ deadlines or 60%+ of weightings)</span><span class="n">This week</span></div>
+      <div class="chat-prompt">Which week is your crunch week? Post it in the chat.</div>
+    </div>
+    <div class="next-row"><button class="btn ghost" data-go="0">← Back</button><button class="btn" data-go="2">Next: Priority Matrix →</button></div>
+  </section>
+
+  <!-- ============ STATION 3 ============ -->
+  <section class="station" id="s3">
+    <div class="station-head"><h2>Priority Matrix</h2><span class="pill">15 min</span></div>
+    <p class="lede">The Eisenhower matrix sorts tasks by <b>urgency</b> and <b>importance</b>. Rate each task's difficulty, then drag it into a quadrant (or use the dropdown on a phone). The score (weighting × urgency × difficulty) is a guide — your judgement counts too.</p>
+    <div class="notes" data-note="s3"></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h3 style="margin:0">Tasks to sort</h3>
+        <form class="row" id="taskForm" style="flex:1;max-width:460px">
+          <input type="text" id="tName" placeholder="Add another task, e.g. 'Book ASC appointment'" style="flex:1">
+          <button class="btn small" type="submit">Add</button>
+        </form>
+      </div>
+      <p class="muted" style="font-size:.82rem;margin:8px 0">Your deadlines from the previous station appear here automatically.</p>
+      <div class="pool" id="pool" data-q="pool"></div>
+      <div class="matrix">
+        <div></div><div class="axis">Urgent</div><div class="axis">Not urgent</div>
+        <div class="axis v">Important</div>
+        <div class="quad q-do" data-q="do"><h4>Do first</h4><small>Important &amp; urgent</small></div>
+        <div class="quad q-plan" data-q="plan"><h4>Schedule</h4><small>Important, not urgent — where planning pays off</small></div>
+        <div class="axis v">Less important</div>
+        <div class="quad q-delegate" data-q="delegate"><h4>Limit / share</h4><small>Urgent, less important — batch it or share it</small></div>
+        <div class="quad q-drop" data-q="drop"><h4>Drop / later</h4><small>Neither — does it need doing at all?</small></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Ranked by priority score</h3>
+      <ol class="rank" id="rank"></ol>
+      <div class="chat-prompt">What's sitting in your "Schedule" box? That's the work to start this week.</div>
+    </div>
+    <div class="next-row"><button class="btn ghost" data-go="1">← Back</button><button class="btn" data-go="3">Next: Backwards Planner →</button></div>
+  </section>
+
+  <!-- ============ STATION 4 ============ -->
+  <section class="station" id="s4">
+    <div class="station-head"><h2>Backwards Planner</h2><span class="pill">10 min</span></div>
+    <p class="lede">Pick one assignment — ideally your top priority. The planner works backwards from the deadline and gives each stage a target date. Adjust the stages and time shares to suit the task.</p>
+    <div class="notes" data-note="s4"></div>
+    <div class="card">
+      <div class="row">
+        <label class="f" style="flex:2;min-width:220px">Assignment<select id="bpPick"></select></label>
+        <label class="f" style="flex:1;min-width:140px">Start date<input type="date" id="bpStart"></label>
+        <label class="f" style="flex:1;min-width:140px">Buffer days before deadline<input type="number" id="bpBuffer" min="0" max="14" value="2"></label>
+      </div>
+      <div id="bpOut"></div>
+    </div>
+    <div class="next-row"><button class="btn ghost" data-go="2">← Back</button><button class="btn" data-go="4">Next: Scenarios →</button></div>
+  </section>
+
+  <!-- ============ STATION 5 ============ -->
+  <section class="station" id="s5">
+    <div class="station-head"><h2>Scenario Challenge</h2><span class="pill">10 min</span></div>
+    <p class="lede">Real situations, no perfect answers. Vote A, B or C in the chat first, then click to see the feedback.</p>
+    <div class="notes" data-note="s5"></div>
+    <div class="card scenario">
+      <div class="scen-nav" id="scenNav"></div>
+      <div id="scenBody"></div>
+    </div>
+    <div class="next-row"><button class="btn ghost" data-go="3">← Back</button><button class="btn" data-go="5">Next: My Next 7 Days →</button></div>
+  </section>
+
+  <!-- ============ STATION 6 ============ -->
+  <section class="station" id="s6">
+    <div class="station-head"><h2>My Next 7 Days</h2><span class="pill">10 min</span></div>
+    <p class="lede">Turn the plan into a week. Click a slot to cycle through <b>Study → Class → Work → Rest</b>, and type a note if you like. Then make one commitment and save your plan.</p>
+    <div class="notes" data-note="s6"></div>
+    <div class="card">
+      <div class="key"><span class="cell study" style="min-height:0;display:inline">Study</span><span class="cell class" style="min-height:0;display:inline">Class</span><span class="cell work" style="min-height:0;display:inline">Work / shift</span><span class="cell rest" style="min-height:0;display:inline">Rest</span></div>
+      <div class="week-wrap"><div class="week" id="week"></div></div>
+      <p class="muted" style="font-size:.82rem;margin-top:8px" id="studyCount"></p>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>My one commitment this week</h3>
+        <textarea id="commit" placeholder="e.g. By Sunday I'll have read the brief and marking criteria for my Strategic Management report and drafted an outline."></textarea>
+        <div class="chat-prompt">Share your commitment in the chat — saying it out loud makes it more likely to happen.</div>
+      </div>
+      <div class="card">
+        <h3>Save your plan</h3>
+        <p class="muted" style="margin-top:0">Everything you typed is stored only in this browser. Save a copy to keep it.</p>
+        <div class="row">
+          <button class="btn" id="printBtn">Print / Save as PDF</button>
+          <button class="btn ghost" id="resetBtn">Clear my data</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Where to get support</h3>
+      <div class="links" id="links"></div>
+    </div>
+    <div class="next-row"><button class="btn ghost" data-go="4">← Back</button><span></span></div>
+  </section>
+</main>
+
+<footer>Your answers stay in your own browser — nothing is uploaded or shared.</footer>
+
+<div id="printPlan"></div>
+
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const DAY = 86400000;
+const today = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+const parse = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const fmt = d => d.toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" });
+const daysUntil = s => Math.round((parse(s) - today()) / DAY);
+const mondayOf = d => { const x = new Date(d); const k = (x.getDay()+6)%7; x.setDate(x.getDate()-k); x.setHours(0,0,0,0); return x; };
+const weekNo = d => Math.floor((mondayOf(d) - parse(CONFIG.week1Monday)) / (7*DAY)) + 1;
+const uid = () => Math.random().toString(36).slice(2,9);
+
+/* ---------- State (browser-only) ---------- */
+const KEY = "semester-planning-studio-v1";
+const blank = () => ({ station:0, visited:[0], deadlines:[], tasks:{}, extraTasks:[], bp:{}, scen:{}, scenIdx:0, week:{}, commit:"" });
+let S = blank();
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(blank(), JSON.parse(raw)); } catch(e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} };
+
+/* ---------- Header / nav ---------- */
+$("#appTitle").textContent = CONFIG.sessionTitle;
+$("#appSub").textContent = CONFIG.subtitle;
+document.title = CONFIG.sessionTitle;
+$$("[data-note]").forEach(el => { const n = CONFIG.notes[el.dataset.note]; el.innerHTML = n ? `<b>Facilitator:</b> ${esc(n)}` : ""; });
+$$(".station .pill").forEach((p, i) => { if (CONFIG.stations[i]) p.textContent = CONFIG.stations[i].minutes + " min"; });
+
+function renderNav(){
+  let elapsed = 0;
+  $("#nav").innerHTML = CONFIG.stations.map((s, i) => {
+    const from = elapsed; elapsed += s.minutes;
+    return `<button class="${i===S.station?"active":""} ${S.visited.includes(i)?"visited":""}" data-i="${i}">
+      <span class="n">${i+1} · ${from}–${elapsed} min</span><span class="t">${esc(s.name)}</span></button>`;
+  }).join("");
+  $$("#nav button").forEach(b => b.onclick = () => go(+b.dataset.i));
+}
+function go(i){
+  S.station = i; if (!S.visited.includes(i)) S.visited.push(i); save();
+  $$("section.station").forEach((s, k) => s.classList.toggle("active", k === i));
+  renderNav(); resetTimer();
+  const renders = [renderS1, renderS2, renderS3, renderS4, renderS5, renderS6]; renders[i]();
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+$$("[data-go]").forEach(b => b.onclick = () => go(+b.dataset.go));
+
+/* ---------- Timer ---------- */
+let tLeft = 0, tInt = null;
+const clock = () => { const m = Math.floor(tLeft/60), s = tLeft%60; $("#clock").textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`; };
+function resetTimer(){ clearInterval(tInt); tInt=null; tLeft = CONFIG.stations[S.station].minutes*60; $("#tStart").textContent="▶"; $("#timer").classList.remove("done"); clock(); }
+$("#tStart").onclick = () => {
+  if (tInt){ clearInterval(tInt); tInt=null; $("#tStart").textContent="▶"; return; }
+  $("#tStart").textContent = "❚❚";
+  tInt = setInterval(() => { tLeft--; clock(); if (tLeft<=0){ clearInterval(tInt); tInt=null; $("#tStart").textContent="▶"; $("#timer").classList.add("done"); } }, 1000);
+};
+$("#tReset").onclick = resetTimer;
+$("#presenterBtn").onclick = e => { const on = document.body.classList.toggle("presenter"); e.currentTarget.setAttribute("aria-pressed", on); };
+$("#themeBtn").onclick = () => {
+  const r = document.documentElement, cur = r.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  r.dataset.theme = cur === "dark" ? "light" : "dark";
+};
+
+/* ---------- Station 1 ---------- */
+const QR_EMBEDDED = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGwAAABsCAYAAACPZlfNAAAFEklEQVR4Aeyai04dORBE78n//zO7kVBWfUZxxeu5YxMaCUHRT9cBW5Hy46M/vpQDP1798aUcaGBfCtfr1cC+OjDgBc99zvoFdbdUD3P5s/2g9od7tffpvzA7crhuYIcD8noNzI4criOwf/+R8rrz824/YPxmeB7M5bve+k5vfvZyf+sIzAVn6u+zVQP7Yqwb2N8ODMZvANT4rB8wrv95z48+Pc+5jt+toe4PYz07v//CZh3bnN/ANgOYHd/AZh3bnH88MLj3DUhvGtR5m/lcxh8P7LLxN/9BAzvpF+APdmlgf2DSSSnHA0tvjs1M+VDfqJTv/rv18cB2G3Ta/AZ2GpGwTwMLBp0WngbmOz/p1QNDfXPcD2ocqna+94Wa77jrk3Z90qmf49PA3KD1sw40sGf9Xp7WwJYtfLZBBAb1joc1PXu8j4+P8n9KXO83wnFrqPu7Hmrc9dZQ82FNu791BOaC1nsdaGB7/Z+e3sCmLdtbcAHmO/3devb43me1Huqbk/o7/m7t812AOaH1WQ40sLN4xG0aWLTorIQLMKh3uteFGoc17f5+E2Dcf7be+dZQ56U41HyY0+6f9AVYKuj4/3XgnroGdo+Pj3VpYI9Zfc+gC7D0hsyOdT9r94P6Bjjf2vXWKT/FV/u5vzXU83qe9QWYE1qf5UADO4tH3KaBRYvOSrgdWLqjod7ZULXtgRqHqp2fNNR6qNr1UONQ9ex53d8aan/HbwfmAa3vdaCB3evn27ttB/b2E/5lAyIw39FJJ39c7/zZOIzvfKjx2f7ezxrG/e+eF4F5wdZ7HWhge/2fnt7Api3bWxCBQb2jYazTcaDWr97xq/Vp39k41PO5Hmocqna+dQTmgtZ7HWhge/2fnt7Api3bW3ABBnN3alrfb4w11HlQtfvDWtz90j4p/zP+60vq5/ivws9vUvwC7LOuvxzqQAM7FMzv1mpgv3Pm0J9HYL5Tk4a1N8b9ofZz3L46DrXe+VDjrk/5s3HnW0Pdx/EIzAWt9zrQwPb6Pz29gU1btrdgGhiM79h0HL8R1q5PcefDeD+ocfeHcdz5nm+d8lPc/aaBuUHrZx14L7Bnz/ItpjWwL4Z5Gli6c1Mc6huR/IK5fPfzPtbOt4Y6H6p2ftIwrk/7TQNLC3X8vQ40sPf6e3v3Bna7pe9teAGW7tDVdVJ/qHe886HGvU/Kh1oPVad+7m/teqj9U77rrS/AnND6LAca2Fk84jYNLFr0ep2UcgEG9c6F92qbke54x2G8n/tbu5/j1lDnOW7t/lDrYazd7wLMCa3PcqCBncUjbtPAokVnJURgvoNXdTo+jO90qHH3m90Pxv1Sf8etofaf3c/9IjAXtN7rQAPb6//09AY2bdnegmlgUO9kGOvV4/nOT/2g7uN8GMdTPtR6qNr13h/G+TCOTwP7b6H+bocDDWyH6wszG9iCeTtKjwcG4zvdb0QyMeWnuPunfBjvD+O45x0PzAt/d93AvthvQANrYO91IL0Zq9OhvimeZ+15Kb6a339hdvBw3cAOB+T1GpgdOVxPA/MdnfTs+d3P9VDfGMetoeZD1avzoPaDqr1Pmud862lgbtD6WQca2LN+L09rYMsWPtsgAoN6J8OaTseD2t/56Q1IcfezXq13P2uo54OqnW8dgbmg9V4HGthe/6enN7Bpy/YWXIB93uGvp776+Gmu85Ne7ed6z3P8bu15F2BOaH2WAw3sLB5xmwYWLTor4R8AAAD//1kdk+UAAAAGSURBVAMA4O5fsDUjJesAAAAASUVORK5CYII=";
+function renderS1(){
+  const v = CONFIG.vevox || {};
+  $("#vxQr").src = v.qrImage || QR_EMBEDDED;
+  $("#vxLink").href = v.joinUrl || "https://vevox.app";
+  $("#vxLink").textContent = (v.joinUrl || "https://vevox.app").replace(/^https?:\/\//, "");
+  $("#vxId").textContent = v.sessionId || "";
+}
+
+/* ---------- Station 2 ---------- */
+$("#fDue").value = iso(new Date(today().getTime() + 21*DAY));
+$("#dlForm").onsubmit = e => {
+  e.preventDefault();
+  S.deadlines.push({ id:uid(), module:$("#fModule").value.trim(), title:$("#fTitle").value.trim(), due:$("#fDue").value, weight:+$("#fWeight").value||0, hours:+$("#fHours").value||0 });
+  $("#fTitle").value = ""; save(); renderS2(); $("#fTitle").focus();
+};
+$("#loadExamples").onclick = () => {
+  CONFIG.exampleDeadlines.forEach(x => { if (!S.deadlines.some(d => d.title===x.title && d.module===x.module)) S.deadlines.push({ id:uid(), ...x }); });
+  save(); renderS2();
+};
+const sorted = () => [...S.deadlines].sort((a,b) => a.due.localeCompare(b.due));
+function renderS2(){
+  const list = sorted();
+  const upcoming = list.filter(d => daysUntil(d.due) >= 0);
+  const hours = upcoming.reduce((s,d) => s + d.hours, 0);
+  const weeksLeft = Math.max(1, Math.ceil(((upcoming.length ? parse(upcoming[upcoming.length-1].due) : today()) - today()) / (7*DAY)));
+  $("#stats").innerHTML = `
+    <div class="stat"><div class="v">${upcoming.length}</div><div class="l">deadlines to go</div></div>
+    <div class="stat"><div class="v">${upcoming[0] ? daysUntil(upcoming[0].due) : "–"}</div><div class="l">days until the next one</div></div>
+    <div class="stat"><div class="v">${upcoming.length ? Math.round(hours/weeksLeft) : "–"}</div><div class="l">hours/week needed (from your estimates)</div></div>`;
+  $("#dlTable").innerHTML = list.length ? `<table><thead><tr><th>Module</th><th>Assessment</th><th>Due</th><th>Days left</th><th>Weight</th><th>Hours</th><th></th></tr></thead><tbody>
+    ${list.map(d => { const n = daysUntil(d.due); return `<tr><td>${esc(d.module)}</td><td>${esc(d.title)}</td><td>${fmt(parse(d.due))}</td>
+      <td class="days ${n<=7?"soon":""}">${n<0?"passed":n}</td><td>${d.weight}%</td><td>${d.hours}</td><td><button class="x" data-del="${d.id}" aria-label="Remove">×</button></td></tr>`; }).join("")}
+    </tbody></table>` : `<p class="empty">No deadlines yet — add your first one above, or load the examples.</p>`;
+  $$("[data-del]").forEach(b => b.onclick = () => { S.deadlines = S.deadlines.filter(d => d.id !== b.dataset.del); delete S.tasks[b.dataset.del]; save(); renderS2(); });
+
+  // Timeline
+  const start = mondayOf(today()), end = parse(CONFIG.timelineEnd);
+  const lastDue = list.length ? parse(list[list.length-1].due) : end;
+  const stop = lastDue > end ? lastDue : end;
+  const weeks = [];
+  for (let m = new Date(start); m <= stop; m = new Date(m.getTime() + 7*DAY)) weeks.push(new Date(m));
+  const tl = $("#timeline");
+  tl.style.gridTemplateColumns = `repeat(${weeks.length}, minmax(78px,1fr))`;
+  tl.innerHTML = weeks.map((m, i) => {
+    const inWeek = list.filter(d => { const x = parse(d.due); return x >= m && x < new Date(m.getTime()+7*DAY); });
+    const w = inWeek.reduce((s,d) => s + d.weight, 0);
+    const crunch = inWeek.length >= 2 || w >= 60;
+    const wn = weekNo(m);
+    return `<div class="tl-week ${crunch?"crunch":""} ${i===0?"now":""}">
+      <div class="wk"><b>${wn>0 && wn<=12 ? "Wk "+wn : m.toLocaleDateString("en-GB",{month:"short"})}</b> · ${m.getDate()} ${m.toLocaleDateString("en-GB",{month:"short"})}</div>
+      ${inWeek.map(d => `<div class="chip" title="${esc(d.title)}"><b>${esc(d.module)}</b><br>${esc(d.title)} · ${d.weight}%</div>`).join("")}
+      ${crunch ? `<div class="crunch-flag">Crunch</div>` : ""}</div>`;
+  }).join("");
+}
+
+/* ---------- Station 3 ---------- */
+function allTasks(){
+  const fromDl = S.deadlines.map(d => ({ id:d.id, name:`${d.module}: ${d.title}`, weight:d.weight, due:d.due }));
+  return fromDl.concat(S.extraTasks);
+}
+const tState = id => (S.tasks[id] ||= { q:"pool", diff:3 });
+function urgency(t){ if (!t.due) return 2; const n = daysUntil(t.due); return n < 0 ? 0 : n <= 7 ? 5 : n <= 14 ? 4 : n <= 21 ? 3 : n <= 35 ? 2 : 1; }
+const score = t => Math.round((t.weight||10)/10 * urgency(t) * tState(t.id).diff);
+$("#taskForm").onsubmit = e => {
+  e.preventDefault(); const v = $("#tName").value.trim(); if (!v) return;
+  S.extraTasks.push({ id:uid(), name:v, weight:10, due:null }); $("#tName").value=""; save(); renderS3();
+};
+let dragId = null;
+function renderS3(){
+  const tasks = allTasks();
+  $$(".quad, #pool").forEach(z => z.querySelectorAll(".task, .empty").forEach(n => n.remove()));
+  const opts = [["pool","Unsorted"],["do","Do first"],["plan","Schedule"],["delegate","Limit/share"],["drop","Drop/later"]];
+  tasks.forEach(t => {
+    const st = tState(t.id);
+    const el = document.createElement("div");
+    el.className = "task"; el.draggable = true; el.dataset.id = t.id;
+    el.innerHTML = `<span>${esc(t.name)}</span>
+      <select data-diff title="Difficulty">${[1,2,3,4,5].map(n => `<option value="${n}" ${st.diff===n?"selected":""}>Diff ${n}</option>`).join("")}</select>
+      <select data-move title="Move to" aria-label="Move to quadrant">${opts.map(([k,l]) => `<option value="${k}" ${st.q===k?"selected":""}>${l}</option>`).join("")}</select>
+      <span class="score" title="Priority score">${score(t)}</span>
+      ${t.due ? "" : `<button class="x" data-rm="${t.id}" aria-label="Remove">×</button>`}`;
+    el.addEventListener("dragstart", () => { dragId = t.id; el.classList.add("dragging"); });
+    el.addEventListener("dragend", () => el.classList.remove("dragging"));
+    el.querySelector("[data-diff]").onchange = e => { st.diff = +e.target.value; save(); renderS3(); };
+    el.querySelector("[data-move]").onchange = e => { st.q = e.target.value; save(); renderS3(); };
+    const rm = el.querySelector("[data-rm]"); if (rm) rm.onclick = () => { S.extraTasks = S.extraTasks.filter(x => x.id!==t.id); delete S.tasks[t.id]; save(); renderS3(); };
+    const zone = document.querySelector(`[data-q="${st.q}"]`) || $("#pool");
+    zone.appendChild(el);
+  });
+  if (!$("#pool").querySelector(".task")) $("#pool").insertAdjacentHTML("beforeend", `<span class="empty">${tasks.length ? "All sorted — nice." : "Add deadlines in the Deadline Mapper, or add a task above."}</span>`);
+  const ranked = tasks.map(t => ({ t, s:score(t) })).sort((a,b) => b.s - a.s);
+  const max = ranked[0]?.s || 1;
+  $("#rank").innerHTML = ranked.length ? ranked.map(r => `<li><b>${esc(r.t.name)}</b> — ${r.s}<div class="bar" style="width:${Math.max(4, r.s/max*100)}%"></div></li>`).join("") : `<p class="empty">Nothing to rank yet.</p>`;
+}
+$$(".quad, #pool").forEach(z => {
+  z.addEventListener("dragover", e => { e.preventDefault(); z.classList.add("over"); });
+  z.addEventListener("dragleave", () => z.classList.remove("over"));
+  z.addEventListener("drop", e => { e.preventDefault(); z.classList.remove("over"); if (dragId){ tState(dragId).q = z.dataset.q; dragId=null; save(); renderS3(); } });
+});
+
+/* ---------- Station 4 ---------- */
+function bpFor(id){ return (S.bp[id] ||= { start: iso(today()), buffer: 2, stages: CONFIG.stages.map(s => ({...s})) }); }
+function renderS4(){
+  const list = sorted().filter(d => daysUntil(d.due) >= 0);
+  if (!list.length){ $("#bpPick").innerHTML = `<option>Add a deadline first</option>`; $("#bpOut").innerHTML = `<p class="empty">Go back to the Deadline Mapper and add at least one upcoming deadline.</p>`; return; }
+  if (!S.bpSel || !list.some(d => d.id===S.bpSel)){
+    const ranked = list.map(d => ({ d, s:score({ id:d.id, weight:d.weight, due:d.due }) })).sort((a,b) => b.s-a.s);
+    S.bpSel = ranked[0].d.id;
+  }
+  $("#bpPick").innerHTML = list.map(d => `<option value="${d.id}" ${d.id===S.bpSel?"selected":""}>${esc(d.module)} — ${esc(d.title)} (${fmt(parse(d.due))})</option>`).join("");
+  const d = list.find(x => x.id===S.bpSel), p = bpFor(d.id);
+  $("#bpStart").value = p.start; $("#bpBuffer").value = p.buffer;
+  const startD = parse(p.start), endD = new Date(parse(d.due).getTime() - p.buffer*DAY);
+  const span = Math.max(1, Math.round((endD - startD)/DAY));
+  const total = p.stages.reduce((s,x) => s + (+x.share||0), 0) || 1;
+  let acc = 0;
+  const palette = ["var(--accent)","var(--ok)","#7a6ad8","#d8a33a","#3a8fd8","#c24f7a","#5aa39a","#8a8f9e"];
+  const rows = p.stages.map((s, i) => {
+    acc += (+s.share||0);
+    const target = new Date(startD.getTime() + Math.round(span * acc/total)*DAY);
+    return { s, i, target };
+  });
+  const tooShort = span < p.stages.length;
+  $("#bpOut").innerHTML = `
+    <div class="gantt">${rows.map(r => `<div style="flex:${+r.s.share||0};background:${palette[r.i%palette.length]}" title="${esc(r.s.name)}"></div>`).join("")}</div>
+    <p class="muted" style="font-size:.82rem;margin:0 0 14px">${span} days from ${fmt(startD)} to your personal deadline of <b>${fmt(endD)}</b> (real deadline ${fmt(parse(d.due))}).</p>
+    ${tooShort ? `<div class="warn-box">That's a tight window for ${p.stages.length} stages. Consider starting today, combining stages, or talking to your PAT.</div>` : ""}
+    <div class="stage-list" style="margin-top:12px">${rows.map(r => `
+      <div class="stage ${r.target < today() ? "past":""}">
+        <span class="num" style="background:${palette[r.i%palette.length]}">${r.i+1}</span>
+        <input type="text" value="${esc(r.s.name)}" data-sname="${r.i}" aria-label="Stage name">
+        <span class="share"><input type="number" min="0" max="100" value="${r.s.share}" data-sshare="${r.i}" aria-label="Share of time">%</span>
+        <span class="date">by ${fmt(r.target)}</span>
+        <button class="x" data-srm="${r.i}" aria-label="Remove stage">×</button>
+      </div>`).join("")}</div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost small" id="addStage">+ Add stage</button>
+      <button class="btn ghost small" id="resetStages">Reset stages</button>
+      <span class="muted" style="font-size:.82rem">Shares total ${total}%</span>
+    </div>
+    <div class="chat-prompt">What's the date of your first stage — and is it this week?</div>`;
+  $$("[data-sname]").forEach(el => el.onchange = () => { p.stages[+el.dataset.sname].name = el.value; save(); });
+  $$("[data-sshare]").forEach(el => el.onchange = () => { p.stages[+el.dataset.sshare].share = +el.value||0; save(); renderS4(); });
+  $$("[data-srm]").forEach(el => el.onclick = () => { p.stages.splice(+el.dataset.srm,1); save(); renderS4(); });
+  $("#addStage").onclick = () => { p.stages.push({ name:"New stage", share:10 }); save(); renderS4(); };
+  $("#resetStages").onclick = () => { p.stages = CONFIG.stages.map(s => ({...s})); save(); renderS4(); };
+}
+$("#bpPick").onchange = e => { S.bpSel = e.target.value; save(); renderS4(); };
+$("#bpStart").onchange = e => { if (S.bpSel){ bpFor(S.bpSel).start = e.target.value || iso(today()); save(); renderS4(); } };
+$("#bpBuffer").onchange = e => { if (S.bpSel){ bpFor(S.bpSel).buffer = Math.max(0, +e.target.value||0); save(); renderS4(); } };
+
+/* ---------- Station 5 ---------- */
+function renderS5(){
+  const i = S.scenIdx;
+  $("#scenNav").innerHTML = CONFIG.scenarios.map((s, k) => `<button class="${k===i?"active":""}" data-k="${k}">${k+1}. ${esc(s.title)}${S.scen[k]!=null?" ✓":""}</button>`).join("");
+  $$("#scenNav button").forEach(b => b.onclick = () => { S.scenIdx = +b.dataset.k; save(); renderS5(); });
+  const sc = CONFIG.scenarios[i], pick = S.scen[i];
+  $("#scenBody").innerHTML = `<h3>${esc(sc.title)}</h3><p class="s">${esc(sc.text)}</p>
+    ${sc.options.map((o, k) => {
+      const shown = pick != null && (k === pick || o.good);
+      return `<button class="choice ${shown ? (o.good?"good":"bad") : ""}" data-o="${k}"><span class="letter">${"ABC"[k]||k+1}</span>
+        <span><b>${esc(o.t)}</b>${shown ? `<div class="fb">${esc(o.fb)}</div>` : ""}</span></button>`;
+    }).join("")}
+    <div class="row" style="justify-content:space-between;margin-top:8px">
+      <button class="btn ghost small" id="scenReset">Hide feedback</button>
+      ${i < CONFIG.scenarios.length-1 ? `<button class="btn small" id="scenNext">Next scenario →</button>` : ""}
+    </div>`;
+  $$("#scenBody .choice").forEach(b => b.onclick = () => { S.scen[i] = +b.dataset.o; save(); renderS5(); });
+  $("#scenReset").onclick = () => { delete S.scen[i]; save(); renderS5(); };
+  const n = $("#scenNext"); if (n) n.onclick = () => { S.scenIdx++; save(); renderS5(); };
+}
+
+/* ---------- Station 6 ---------- */
+const SLOTS = ["Morning","Afternoon","Evening"];
+const CYCLE = ["", "study", "class", "work", "rest"];
+const LABEL = { study:"Study", class:"Class", work:"Work", rest:"Rest" };
+function weekDays(){ const t = today(); return Array.from({length:7}, (_,k) => new Date(t.getTime()+k*DAY)); }
+function renderS6(){
+  const days = weekDays();
+  let html = `<div></div>` + days.map(d => `<div class="h">${d.toLocaleDateString("en-GB",{weekday:"short"})}<b>${d.getDate()} ${d.toLocaleDateString("en-GB",{month:"short"})}</b></div>`).join("");
+  SLOTS.forEach((sl, si) => {
+    html += `<div class="slot-l">${sl}</div>`;
+    days.forEach(d => {
+      const k = `${iso(d)}-${si}`, c = S.week[k] || { t:"", n:"" };
+      html += `<div class="cell ${c.t}" data-k="${k}"><span class="tag">${LABEL[c.t]||"&nbsp;"}</span><input type="text" value="${esc(c.n)}" placeholder="${c.t?"note…":""}" aria-label="${sl} ${fmt(d)} note"></div>`;
+    });
+  });
+  $("#week").innerHTML = html;
+  $$("#week .cell").forEach(cell => {
+    const k = cell.dataset.k;
+    cell.onclick = e => { if (e.target.tagName === "INPUT") return; const c = S.week[k] ||= { t:"", n:"" }; c.t = CYCLE[(CYCLE.indexOf(c.t)+1)%CYCLE.length]; save(); renderS6(); };
+    cell.querySelector("input").oninput = e => { (S.week[k] ||= { t:"", n:"" }).n = e.target.value; save(); };
+  });
+  const n = days.reduce((s,d) => s + SLOTS.filter((_,si) => S.week[`${iso(d)}-${si}`]?.t==="study").length, 0);
+  const r = days.reduce((s,d) => s + SLOTS.filter((_,si) => S.week[`${iso(d)}-${si}`]?.t==="rest").length, 0);
+  $("#studyCount").textContent = `${n} study block${n===1?"":"s"} and ${r} rest block${r===1?"":"s"} planned. Aim for a balance you can actually keep up.`;
+  $("#commit").value = S.commit;
+  $("#links").innerHTML = CONFIG.supportLinks.map(l => l.url
+    ? `<a class="link-card" href="${esc(l.url)}" target="_blank" rel="noopener"><b>${esc(l.name)} ↗</b><span>${esc(l.desc)}</span></a>`
+    : `<div class="link-card"><b>${esc(l.name)}</b><span>${esc(l.desc)}</span></div>`).join("");
+}
+$("#commit").oninput = e => { S.commit = e.target.value; save(); };
+$("#resetBtn").onclick = () => { if (confirm("Clear everything you've entered in this tool? This can't be undone.")){ S = blank(); save(); go(0); } };
+
+/* ---------- Print ---------- */
+$("#printBtn").onclick = () => { buildPrint(); window.print(); };
+function buildPrint(){
+  const list = sorted().filter(d => daysUntil(d.due) >= 0);
+  const ranked = allTasks().map(t => ({ t, s:score(t), q:tState(t.id).q })).sort((a,b) => b.s-a.s).slice(0,5);
+  const qName = { pool:"Unsorted", do:"Do first", plan:"Schedule", delegate:"Limit/share", drop:"Drop/later" };
+  const d = list.find(x => x.id === S.bpSel), p = d && S.bp[d.id];
+  let bpRows = "";
+  if (p){
+    const startD = parse(p.start), endD = new Date(parse(d.due).getTime() - p.buffer*DAY), span = Math.max(1, Math.round((endD-startD)/DAY));
+    const total = p.stages.reduce((s,x) => s+(+x.share||0),0)||1; let acc = 0;
+    bpRows = p.stages.map((s,i) => { acc += +s.share||0; return `<tr><td>${i+1}</td><td>${esc(s.name)}</td><td>${fmt(new Date(startD.getTime()+Math.round(span*acc/total)*DAY))}</td></tr>`; }).join("");
+  }
+  const days = weekDays();
+  const weekRows = SLOTS.map((sl,si) => `<tr><th>${sl}</th>${days.map(dd => { const c = S.week[`${iso(dd)}-${si}`]; return `<td>${c?.t?`<b>${LABEL[c.t]}</b>`:""}${c?.n?`<br>${esc(c.n)}`:""}</td>`; }).join("")}</tr>`).join("");
+  $("#printPlan").innerHTML = `
+    <h1>My semester plan</h1><p>${esc(CONFIG.subtitle)} · Created ${fmt(today())}</p>
+    <h2>Deadlines</h2>
+    ${list.length ? `<table><tr><th>Module</th><th>Assessment</th><th>Due</th><th>Weight</th></tr>${list.map(x => `<tr><td>${esc(x.module)}</td><td>${esc(x.title)}</td><td>${fmt(parse(x.due))}</td><td>${x.weight}%</td></tr>`).join("")}</table>` : "<p>None entered.</p>"}
+    <h2>Top priorities</h2>
+    ${ranked.length ? `<ol>${ranked.map(r => `<li>${esc(r.t.name)} — score ${r.s} (${qName[r.q]})</li>`).join("")}</ol>` : "<p>None entered.</p>"}
+    ${bpRows ? `<h2>Backwards plan: ${esc(d.module)} — ${esc(d.title)}</h2><table><tr><th>#</th><th>Stage</th><th>Target date</th></tr>${bpRows}</table>` : ""}
+    <h2>My next 7 days</h2>
+    <table><tr><th></th>${days.map(dd => `<th>${fmt(dd)}</th>`).join("")}</tr>${weekRows}</table>
+    <h2>My commitment</h2><div class="pbox">${S.commit ? esc(S.commit).replace(/\n/g,"<br>") : "&nbsp;"}</div>
+    <h2>Support</h2><ul>${CONFIG.supportLinks.map(l => `<li><b>${esc(l.name)}</b>${l.url?` — ${esc(l.url)}`:""}<br>${esc(l.desc)}</li>`).join("")}</ul>`;
+}
+
+/* ---------- Start ---------- */
+go(Math.min(S.station||0, CONFIG.stations.length-1));
+})();
+</script>
+</body>
+</html>
